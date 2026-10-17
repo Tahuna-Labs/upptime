@@ -1,31 +1,87 @@
-# Change these first
-owner: upptime # Your GitHub organization or username, where this repository lives
-repo: upptime # The name of this repository
+# Upptime configuration for status.tahuna.org.
+#
+# Copy this file to `.upptimerc.yml` at the root of a repository generated from the Upptime
+# template (https://github.com/upptime/upptime). The live copy is https://github.com/Tahuna-Labs/upptime
+# (created 2026-10-17); edit there and here together. The runbook is deploy/status-page/README.md.
+#
+# Key reference: https://upptime.js.org/docs/configuration/
+#
+# Every check runs from GitHub's runners, outside Railway and Cloudflare. Each site below states
+# what its check proves and the source the check was read from.
+#
+# Body-text keys (`__dangerous__body_down_if_text_missing`, `__dangerous__body_degraded_if_text_missing`):
+# the site is marked down (or degraded) when the response body does not contain the text.
+# `expectedStatusCodes`: by default every 2xx and 3xx counts as up; [200] refuses a redirect.
+# `maxResponseTime`: a slower answer reads degraded; the default is 30000 ms.
+
+owner: Tahuna-Labs
+repo: upptime
+# Sent on every GitHub API call Upptime makes; the docs recommend the GitHub username.
+user-agent: Tahuna-Labs
+
+# GitHub Actions runs a schedule at most every five minutes. This is the template's default, stated
+# so the cadence is visible here.
+workflowSchedule:
+  uptime: "*/5 * * * *"
+
+# No `assignees` key: nobody is assigned to the incident issues Upptime opens.
 
 sites:
-  - name: Google
-    url: https://www.google.com
-  - name: Wikipedia
-    url: https://en.wikipedia.org
-  - name: Hacker News
-    url: https://news.ycombinator.com
-  - name: Secret Site
-    url: $SECRET_SITE
+  # The landing and waitlist. SvelteKit adapter-node (landing/svelte.config.js) on Railway behind
+  # the Cloudflare proxy (landing/README.md). The marker is on the <body> of landing/src/app.html, so a Cloudflare or
+  # Railway error page, which never carries it, reads down. The waitlist route is a POST and is
+  # not probed.
+  - name: Website (tahuna.org)
+    slug: tahuna-website
+    url: https://tahuna.org/
+    expectedStatusCodes:
+      - 200
+    maxResponseTime: 10000
+    __dangerous__body_down_if_text_missing: "data-sveltekit-preload-data"
+
+  # TODO(owner): the app has no public host yet (app.tahuna.org does not resolve). Put the real
+  # host in both entries below and enable them once it answers. The marker is the one the app's
+  # frontend/src/app.html puts on <body>.
+  # - name: App
+  #   slug: tahuna-app
+  #   url: https://app.tahuna.org/
+  #   expectedStatusCodes:
+  #     - 200
+  #   maxResponseTime: 10000
+  #   __dangerous__body_down_if_text_missing: "data-sveltekit-prefetch"
+
+  # The API is reached through the app's /api proxy (frontend/src/hooks.server.ts, active when
+  # TAHUNA_API_ORIGIN is set); the backend itself has no public ingress. The old public origin,
+  # prx.tahuna.org, does not resolve.
+  # The handler (backend/src/main.rs, `health`; body from backend/src/health.rs, the same file as
+  # OTER's) answers 200 whenever the process is up, so the status code alone proves only that.
+  # The body fields are serialised in struct order, so these substrings appear only when that
+  # part is `ok`:
+  #   - database down (sign-in and every write fail): site down;
+  #   - boot not complete, or a module refused (no indexer runs): site degraded.
+  # A 502 from the proxy (`api_upstream_unavailable`) is not 2xx and reads down.
+  # - name: API
+  #   slug: tahuna-api
+  #   url: https://app.tahuna.org/api/health
+  #   expectedStatusCodes:
+  #     - 200
+  #   maxResponseTime: 5000
+  #   __dangerous__body_down_if_text_missing: '"database":{"state":"ok"'
+  #   __dangerous__body_degraded_if_text_missing: '"boot":{"state":"ok"'
+
+  # No docs or blog host exists for Tahuna in this repository.
 
 status-website:
-  # Add your custom domain name, or remove the `cname` line if you don't have a domain
-  # Uncomment the `baseUrl` line if you don't have a custom domain and add your repo name there
-  cname: demo.upptime.js.org
-  # baseUrl: /your-repo-name
-  logoUrl: https://raw.githubusercontent.com/upptime/upptime.js.org/master/static/img/icon.svg
-  name: Upptime
-  introTitle: "**Upptime** is the open-source uptime monitor and status page, powered entirely by GitHub."
-  introMessage: This is a sample status page which uses **real-time** data from our [GitHub repository](https://github.com/upptime/upptime). No server required — just GitHub Actions, Issues, and Pages. [**Get your own for free**](https://github.com/upptime/upptime)
+  # Custom domain. Upptime writes the CNAME file into the gh-pages branch. With a custom domain
+  # there is no `baseUrl`.
+  cname: status.tahuna.org
+  logoUrl: https://tahuna.org/apple-touch-icon.png
+  name: Tahuna Status
+  theme: light
+  introTitle: "Tahuna service status"
+  introMessage: "Each public Tahuna service is checked every five minutes from GitHub's servers, which run apart from the hosting the services use. A failed check opens an incident on this page, and the incident closes when the service answers again."
   navbar:
     - title: Status
       href: /
-    - title: GitHub
-      href: https://github.com/$OWNER/$REPO
-
-# Upptime also supports notifications, assigning issues, and more
-# See https://upptime.js.org/docs/configuration
+    - title: tahuna.org
+      href: https://tahuna.org/
